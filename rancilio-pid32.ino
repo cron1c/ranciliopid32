@@ -10,7 +10,7 @@
 #include "scale.h"
 
 // Debug mode is active if #define DEBUGMODE is set
-#define DEBUGMODE
+//#define DEBUGMODE
 
 #ifndef DEBUGMODE
 #define DEBUG_println(a)
@@ -21,6 +21,9 @@
 #define DEBUG_print(a) Serial.print(a);
 #define DEBUGSTART(a) Serial.begin(a);
 #endif
+
+float tankgewicht;
+int shotgewicht;
 
 //#define BLYNK_PRINT Serial
 //#define BLYNK_DEBUG
@@ -72,7 +75,15 @@ const char* OTApass = OTAPASS;
 //Blynk
 const char* blynkaddress  = BLYNKADDRESS;
 
+// Graph
+int ilang = 128;
 
+#define screenx 128
+#define screeny 128
+int sensorArray[128];
+int count;
+int period = 1000;
+long time_now;
 /********************************************************
    Vorab-Konfig
 ******************************************************/
@@ -153,6 +164,7 @@ int maxErrorCounter = 10 ;  //depends on intervaltempmes* , define max seconds f
 //#ifdef U8X8_HAVE_HW_SPI
 //#include <SPI.h>
 //#endif
+
 U8X8_SSD1306_128X32_UNIVISION_SW_I2C u8x8(/* clock=*/ 99, /* data=*/ 99, /* reset=*/ 99);   //Display initalisieren
 //U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C u8g2(U8G2_R0);
 
@@ -167,6 +179,7 @@ U8X8_SSD1306_128X32_UNIVISION_SW_I2C u8x8(/* clock=*/ 99, /* data=*/ 99, /* rese
 //Adafruit_SSD1306 display(OLED_RESET);
 #include <Adafruit_SSD1351.h>
 Adafruit_SSD1351 display = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, CS_PIN, DC_PIN, MOSI_PIN, SCLK_PIN, RST_PIN); 
+
 //Adafruit_SSD1351 display = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, CS_PIN, DC_PIN, RST_PIN);
 //Adafruit_SSD1351 display = Adafruit_SSD1351(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, CS_PIN, DC_PIN, RST_PIN);
 #define XPOS 0
@@ -266,7 +279,7 @@ int blynksendcounter = 1;
 
 //Update für Display
 unsigned long previousMillisDisplay;  // initialisation at the end of init()
-const long intervalDisplay = 500;
+const long intervalDisplay = 1;
 
 
 /*
@@ -640,9 +653,11 @@ void printScreen() {
     u8x8.setCursor(6, 3);
     u8x8.print(Output);
   }
-  if (Display == 2 && !sensorError) {
+  if (Display == 2 && !sensorError &&  (Input + 5) > setPoint) {
+      
     //display.clearDisplay();
     //display.fillScreen(0);
+    drawGraph();
     display.drawBitmap(0,0, logo_bits,logo_width, logo_height, WHITE);
     display.setTextSize(1);
     display.setTextColor(WHITE,BLACK);
@@ -724,10 +739,17 @@ void printScreen() {
   display.setCursor(0,76);
   display.setTextColor(WHITE,BLACK);
   display.fillRect(0,76,120,7,BLACK);
-  display.print(getWeight() - tareweight);
-  display.setCursor(0,100);
-  display.print(getWeight2());
+  display.print(tankgewicht);
+  display.print("ml");
+  display.setCursor(60,76);
+  display.setTextColor(WHITE,BLACK);
+  display.print(shotgewicht);
+  display.print("ml");
   }
+  else
+    if((Input + 5) < setPoint) {
+      drawGraph(); 
+    }
 }
 
 /********************************************************
@@ -790,6 +812,80 @@ void brewdetection() {
     }
   }
 }
+void drawGraph(void) {
+/*int y1,y2, z1,z2;
+int color = 0x001F; // 1 blue line
+int color1 = 0xF800; // 1 red line
+  for (int x=1;x<128;x++){
+     //y2 = map(Input, 0, 118,0,128); // map max analog read (1023) to max screensize (240)
+     //z2 = map(Output, 0, 1000,0,128); // map max analog read (1023) to max screensize (240)
+     z2 = (127 - (Output / 10));
+     y2 = (127 - Input);
+     //display.drawLine(x,y1,x+1,y2,color); // draw line between previous reading and current
+     //display.drawLine(x,z1,x+1,z2,color1); // draw line between previous reading and current
+     display.drawPixel(x,z2,color);
+     display.drawPixel(x,y2,color1);
+     y1 = y2; // Make current reading previous
+     z1 = z2;
+  }*/
+ //for (int i = 128; i > 0;)
+ 
+ 
+ if(millis() - time_now >= period){
+  if (ilang >= 128)
+  {
+    ilang = 0;
+  }
+  refreshTemp();
+  int height = Input;
+  int height2 = Output / 10;
+  display.fillRect(ilang, 20, 1, 128 - height, BLACK);
+  //display.fillRect(128 - height, i, 128, 1, BLUE);
+  //display.fillRect(ilang, 128 - height, 1, 128, RED);
+display.drawLine(ilang, 128 - height, ilang, 128 - height, RED);
+display.drawLine(ilang, 128 - height2, ilang, 128 - height2, BLUE);
+display.drawLine(0, 0, 0, 128,WHITE);
+display.drawLine(0,127,127,127,WHITE);
+display.setCursor(3,119);
+display.setFont(NULL);
+display.setTextColor(RED,BLACK);
+display.print(Input,1);
+display.setTextColor(BLUE,BLACK);
+display.print(" ");
+display.print(Output / 10, 1);
+  //delay(100); //determines speed of drawing
+  
+    time_now = millis();
+    ilang++;
+ 
+  
+
+ // int height  = map (Input, 0, 118, 0, 128);
+  //sensorArray[0] = height;
+
+
+  //start of screen
+  /*display.drawLine(20, 40, screenx, 40, RED);
+  display.drawLine(20, 112, screenx, 112, RED);
+  display.drawLine(20, 168, screenx, 168, RED);
+  display.drawLine(20, 224, screenx, 224, RED);
+  display.drawLine(20, 128, screenx, 128, RED);
+  display.drawLine(20, 128, screenx, 128, RED);
+
+
+  display.drawLine(20, 40, 20, screeny, RED);
+  display.drawLine(76, 40, 76, screeny, RED);
+  display.drawLine(132, 40, 132, screeny, RED);
+  display.drawLine(188, 40, 188, screeny, RED);
+  display.drawLine(128, 40, 128, screeny, RED);*/
+  //end of screen
+  //display.fillRect(20, i, 128 - height, 1, GREEN); //these could be lines alse
+
+
+  }
+}
+  
+
 
 /********************************************************
     Timer 1 - ISR für PID Berechnung und Heizrelais-Ausgabe
@@ -820,6 +916,9 @@ void IRAM_ATTR onTimer(){
 void setup() {
   initScale();
   initScale2();
+  time_now = millis();
+  // Init Array for graph
+  //debug
   DEBUGSTART(115200);
   /********************************************************
     Define trigger type
@@ -1148,6 +1247,9 @@ void loop() {
 
     sendToBlynk();
 
+    tankgewicht = getWeight() - tareweight;
+    shotgewicht = getWeight2();
+    
     //update display if time interval xpired
     unsigned long currentMillisDisplay = millis();
     if (currentMillisDisplay - previousMillisDisplay >= intervalDisplay) {
