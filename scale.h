@@ -58,13 +58,8 @@ void initScale() {
 void initScale2() {
   float calValue2; // calibration value
   calValue2 = 202.01;  //369.80; // uncomment this if you want to set this value in the sketch
-  //#if defined(ESP8266)
-  //EEPROM.begin(512); // uncomment this if you use ESP8266 and want to fetch this value from eeprom
-  //#endif
-  //EEPROM.get(eepromAdress, calValue); // uncomment this if you want to fetch this value from eeprom
   LoadCell2.begin();
   long stabilisingtime = 2000; // tare preciscion can be improved by adding a few seconds of stabilising time
-  //LoadCell.start(stabilisingtime);
   if (LoadCell2.getTareTimeoutFlag()) {
     Serial.println("Tare timeout, check MCU>HX711 wiring and pin designations");
   }
@@ -90,46 +85,30 @@ void initScale2() {
   }
 }
 int getWeight() {
-  //update() should be called at least as often as HX711 sample rate; >10Hz@10SPS, >80Hz@80SPS
-  //use of delay in sketch will reduce effective sample rate (be carefull with delay() in the loop)
-  //float sum = 0;
-  //int c;
   float weight = 0;
-  //for (c = 0; c< 2; c++) {
      LoadCell.update();
   //get smoothed value from data set + current calibration factor
   if (millis() > tim + 250) {
     float i = LoadCell.getData();
-//    sum = sum + i;
     Serial.print("Load_cell output val: ");
     Serial.println(i);
     weight = i;
     tim = millis();
   }
-  //float average = sum/2;
-  //return(average);
-  //}
   return(weight);
 }
 int getWeight2() {
   //update() should be called at least as often as HX711 sample rate; >10Hz@10SPS, >80Hz@80SPS
   //use of delay in sketch will reduce effective sample rate (be carefull with delay() in the loop)
-  //float sum = 0;
-  //int c;
   float weight2 = 0;
-  //for (c = 0; c< 2; c++) {
      LoadCell2.update();
   //get smoothed value from data set + current calibration factor
   if (millis() > tim2 + 250) {
     float i = LoadCell2.getData();
-//    sum = sum + i;
     Serial.print("Load_cell output val: ");
     Serial.println(i);
     weight2 = i;
     tim2 = millis();
-  }
-  //float average = sum/2;
-  //return(average);
-  //}
+
   return(weight2);
 }
